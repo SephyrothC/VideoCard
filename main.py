@@ -593,13 +593,21 @@ def get_latest_images(count: int = 3) -> list:
 
 
 def init_serial_connection():
-    """Initialise connexion série"""
+    """Initialise connexion série en testant automatiquement ttyUSB0 et ttyUSB1"""
     global serial_connection
-    try:
-        serial_connection = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
-        logger.info("Connexion série initialisée")
-    except Exception as e:
-        logger.warning(f"Connexion série non disponible: {e}")
+    ports = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    
+    for port in ports:
+        try:
+            serial_connection = serial.Serial(port, 9600, timeout=1)
+            logger.info(f"Connexion série établie sur {port}")
+            return True
+        except Exception as e:
+            logger.warning(f"Impossible de se connecter à {port}: {e}")
+            continue
+    
+    logger.warning("Aucun port série disponible sur ttyUSB0 ou ttyUSB1")
+    return False
 
 
 def send_serial_signal(signal_byte: bytes = b'\x01'):
