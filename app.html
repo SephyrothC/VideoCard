@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataMatrix Scanner - Caméra Pi</title>
+    <title>DataMatrix Scanner - Application</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -101,6 +101,35 @@
             transform: translateY(-2px);
         }
         
+        .btn-settings {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: none;
+            color: white;
+        }
+        
+        .btn-settings:hover {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+            transform: translateY(-2px);
+        }
+        
+        .btn-lighting {
+            margin-bottom: 5px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-blanc {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 1px solid #dee2e6;
+            color: #495057;
+        }
+        
+        .btn-uv {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border: none;
+            color: white;
+        }
+        
         .status-panel {
             background: white;
             border-radius: 10px;
@@ -172,6 +201,58 @@
         
         .message.info {
             color: #007bff;
+        }
+        
+        .settings-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .settings-display {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .settings-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin: 2px;
+        }
+        
+        .badge-datamatrix {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .badge-lot {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .badge-automatique {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .badge-manuel {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .badge-blanc {
+            background: #f5f5f5;
+            color: #424242;
+        }
+        
+        .badge-uv {
+            background: #f3e5f5;
+            color: #8e24aa;
         }
         
         .gallery {
@@ -323,7 +404,6 @@
     </div>
 
     <div class="container-fluid py-4">
-
         <div class="row">
             <!-- Flux vidéo et galerie (partie gauche) -->
             <div class="col-lg-8">
@@ -348,6 +428,19 @@
 
             <!-- Panneau de contrôle (partie droite) -->
             <div class="col-lg-4">
+                <!-- Configuration actuelle -->
+                <div class="settings-panel">
+                    <h4 class="text-center mb-3">
+                        <i class="fas fa-cogs"></i> Configuration
+                    </h4>
+                    <div id="currentSettings" class="settings-display text-center">
+                        <!-- Sera mis à jour dynamiquement -->
+                    </div>
+                    <button id="settingsBtn" class="btn btn-settings btn-custom">
+                        <i class="fas fa-cogs"></i> Modifier paramètres
+                    </button>
+                </div>
+
                 <!-- Boutons de contrôle -->
                 <div class="control-panel">
                     <h4 class="text-center mb-3">
@@ -355,7 +448,7 @@
                     </h4>
                     
                     <button id="captureBtn" class="btn btn-capture btn-custom">
-                        <i class="fas fa-camera"></i> Prendre une photo
+                        <i class="fas fa-camera"></i> <span id="captureBtnText">Prendre une photo</span>
                     </button>
                     
                     <button id="focusBtn" class="btn btn-focus btn-custom">
@@ -366,9 +459,19 @@
                         <i class="fas fa-search-minus"></i> Réinitialiser zoom
                     </button>
                     
-                    <button id="serialBtn" class="btn btn-serial btn-custom">
-                        <i class="fas fa-bolt"></i> Signal série
-                    </button>
+                    <!-- Contrôles d'éclairage rapide -->
+                    <div class="row">
+                        <div class="col-6">
+                            <button id="lightingBlancBtn" class="btn btn-blanc btn-lighting btn-custom">
+                                <i class="fas fa-sun"></i> LEDs blanches
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button id="lightingUvBtn" class="btn btn-uv btn-lighting btn-custom">
+                                <i class="fas fa-radiation"></i> Lampe UV
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Panneau de statut -->
@@ -387,7 +490,7 @@
                 <!-- Résultat DataMatrix -->
                 <div id="datamatrixPanel" class="control-panel" style="display: none;">
                     <h5 class="text-center mb-3">
-                        <i class="fas fa-qrcode"></i> Code détecté
+                        <i class="fas fa-qrcode"></i> <span id="resultTitle">Code détecté</span>
                     </h5>
                     <div id="datamatrixResult" class="datamatrix-result">
                         Aucun code détecté
@@ -429,9 +532,11 @@
                 this.isCapturing = false;
                 this.isFocusing = false;
                 this.currentZoom = 1;
+                this.currentSettings = {};
                 
                 this.initializeElements();
                 this.setupEventListeners();
+                this.loadSettings();
                 this.connectWebSocket();
                 this.updateCurrentTime();
                 
@@ -443,9 +548,12 @@
                 // Éléments du DOM
                 this.videoFeed = document.getElementById('videoFeed');
                 this.captureBtn = document.getElementById('captureBtn');
+                this.captureBtnText = document.getElementById('captureBtnText');
                 this.focusBtn = document.getElementById('focusBtn');
                 this.zoomResetBtn = document.getElementById('zoomResetBtn');
-                this.serialBtn = document.getElementById('serialBtn');
+                this.settingsBtn = document.getElementById('settingsBtn');
+                this.lightingBlancBtn = document.getElementById('lightingBlancBtn');
+                this.lightingUvBtn = document.getElementById('lightingUvBtn');
                 this.statusMessages = document.getElementById('statusMessages');
                 this.statusIndicator = document.getElementById('statusIndicator');
                 this.connectionStatus = document.getElementById('connectionStatus');
@@ -454,8 +562,10 @@
                 this.galleryGrid = document.getElementById('galleryGrid');
                 this.datamatrixPanel = document.getElementById('datamatrixPanel');
                 this.datamatrixResult = document.getElementById('datamatrixResult');
+                this.resultTitle = document.getElementById('resultTitle');
                 this.zoomIndicator = document.getElementById('zoomIndicator');
                 this.currentTime = document.getElementById('currentTime');
+                this.currentSettings = document.getElementById('currentSettings');
                 this.imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
                 this.modalImage = document.getElementById('modalImage');
             }
@@ -463,10 +573,10 @@
             setupEventListeners() {
                 // Bouton de capture
                 this.captureBtn.addEventListener('click', () => {
-            if (!this.isCapturing) {
-                this.capturePhoto();
-            }
-        });
+                    if (!this.isCapturing) {
+                        this.capturePhoto();
+                    }
+                });
                 
                 // Bouton de focus
                 this.focusBtn.addEventListener('click', () => this.autoFocus());
@@ -474,8 +584,14 @@
                 // Bouton de reset zoom
                 this.zoomResetBtn.addEventListener('click', () => this.resetZoom());
                 
-                // Bouton signal série
-                this.serialBtn.addEventListener('click', () => this.sendSerialSignal());
+                // Bouton paramètres
+                this.settingsBtn.addEventListener('click', () => {
+                    window.location.href = '/';
+                });
+                
+                // Boutons d'éclairage
+                this.lightingBlancBtn.addEventListener('click', () => this.setLighting('blanc'));
+                this.lightingUvBtn.addEventListener('click', () => this.setLighting('uv'));
                 
                 // Clic sur la vidéo pour zoom
                 this.videoFeed.addEventListener('click', (e) => this.handleVideoClick(e));
@@ -489,6 +605,62 @@
                 this.videoFeed.addEventListener('load', () => {
                     this.addStatusMessage('Flux vidéo reconnecté', 'success');
                 });
+            }
+
+            async loadSettings() {
+                try {
+                    const response = await fetch('/api/settings');
+                    if (response.ok) {
+                        this.currentSettings = await response.json();
+                        this.updateSettingsDisplay();
+                        this.updateCaptureButton();
+                    }
+                } catch (error) {
+                    console.error('Erreur chargement paramètres:', error);
+                }
+            }
+
+            updateSettingsDisplay() {
+                const settings = this.currentSettings;
+                
+                const badges = [
+                    { 
+                        text: settings.scan_mode === 'datamatrix' ? 'DataMatrix' : 'Lot',
+                        class: settings.scan_mode === 'datamatrix' ? 'badge-datamatrix' : 'badge-lot'
+                    },
+                    {
+                        text: settings.detection_mode === 'automatique' ? 'Automatique' : 'Manuel',
+                        class: settings.detection_mode === 'automatique' ? 'badge-automatique' : 'badge-manuel'
+                    },
+                    {
+                        text: settings.lighting_mode === 'blanc' ? 'LEDs blanches' : 'Lampe UV',
+                        class: settings.lighting_mode === 'blanc' ? 'badge-blanc' : 'badge-uv'
+                    }
+                ];
+
+                this.currentSettings.innerHTML = badges.map(badge => 
+                    `<span class="settings-badge ${badge.class}">${badge.text}</span>`
+                ).join(' ');
+
+                // Afficher l'OF manuel si nécessaire
+                if (settings.detection_mode === 'manuel' && settings.manual_of) {
+                    this.currentSettings.innerHTML += `<br><small>OF: ${settings.manual_of}</small>`;
+                }
+            }
+
+            updateCaptureButton() {
+                const settings = this.currentSettings;
+                if (settings.scan_mode === 'datamatrix') {
+                    this.captureBtnText.textContent = 'Scanner DataMatrix';
+                } else {
+                    this.captureBtnText.textContent = 'Capturer lot';
+                }
+            }
+
+            setLighting(type) {
+                if (!this.isWebSocketReady()) return;
+                
+                this.ws.send(JSON.stringify({ lighting: type }));
             }
 
             connectWebSocket() {
@@ -575,13 +747,25 @@
                     this.updateGallery(data.latest_images);
                 }
                 
-                // Affichage du résultat DataMatrix
-                if (data.datamatrix) {
-                    this.showDataMatrixResult(data.datamatrix);
-                    this.addStatusMessage(`Code détecté: ${data.datamatrix}`, 'success');
+                // Affichage du résultat selon le mode
+                if (data.scan_mode === 'datamatrix') {
+                    this.resultTitle.textContent = 'Code DataMatrix détecté';
+                    if (data.datamatrix) {
+                        this.showDataMatrixResult(data.datamatrix);
+                        this.addStatusMessage(`Code détecté: ${data.datamatrix}`, 'success');
+                    } else {
+                        this.hideDataMatrixResult();
+                        this.addStatusMessage('Aucun code DataMatrix détecté', 'warning');
+                    }
                 } else {
-                    this.hideDataMatrixResult();
-                    this.addStatusMessage('Aucun code DataMatrix détecté', 'warning');
+                    this.resultTitle.textContent = 'Capture lot';
+                    if (data.datamatrix) {
+                        this.showDataMatrixResult(data.datamatrix);
+                        this.addStatusMessage(`Lot capturé: ${data.datamatrix}`, 'success');
+                    } else {
+                        this.showDataMatrixResult('Photo capturée en mode lot');
+                        this.addStatusMessage('Photo lot capturée', 'success');
+                    }
                 }
             }
 
@@ -589,8 +773,13 @@
                 if (this.isCapturing || !this.isWebSocketReady()) return;
                 
                 this.isCapturing = true;
-                this.showLoading('Capture en cours...');
-                this.disableButton(this.captureBtn, 'Capture...');
+                
+                // Message personnalisé selon le mode
+                const mode = this.currentSettings.scan_mode;
+                const message = mode === 'datamatrix' ? 'Scan en cours...' : 'Capture lot...';
+                
+                this.showLoading(message);
+                this.disableButton(this.captureBtn, message);
                 
                 this.ws.send('capture');
             }
@@ -617,12 +806,6 @@
                 this.zoomIndicator.style.display = 'none';
                 this.ws.send(JSON.stringify({ resetZoom: true }));
                 this.addStatusMessage('Zoom réinitialisé', 'info');
-            }
-
-            sendSerialSignal() {
-                if (!this.isWebSocketReady()) return;
-                
-                this.ws.send(JSON.stringify({ serial: true }));
             }
 
             handleVideoClick(event) {
@@ -747,10 +930,10 @@
                 this.isFocusing = false;
                 
                 this.captureBtn.disabled = false;
-                this.captureBtn.innerHTML = '<i class="fas fa-camera"></i> Prendre une photo';
+                this.captureBtn.innerHTML = `<i class="fas fa-camera"></i> <span id="captureBtnText">${this.captureBtnText.textContent}</span>`;
                 
                 this.focusBtn.disabled = false;
-                this.focusBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Refocus manuel';
+                this.focusBtn.innerHTML = '<i class="fas fa-adjust"></i> Réoptimiser exposition';
             }
 
             updateCurrentTime() {

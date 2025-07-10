@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataMatrix Scanner - Paramètres</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .settings-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            text-align: center;
+            color: #4a5568;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        
+        .option-btn {
+            flex: 1;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            background: #f7fafc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .option-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .option-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .option-btn i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .option-btn.active i {
+            color: white;
+        }
+        
+        .option-btn .title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            color: #2d3748;
+        }
+        
+        .option-btn.active .title {
+            color: white;
+        }
+        
+        .option-btn .description {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+        
+        .option-btn.active .description {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .manual-input {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .manual-input.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            font-size: 1.1rem;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .lighting-controls {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .lighting-btn {
+            padding: 15px 30px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .lighting-btn:before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+        
+        .lighting-btn:hover:before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-blanc {
+            background: linear-gradient(135deg, #fff, #f8f9fa);
+            color: #2d3748;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .btn-blanc:hover {
+            background: linear-gradient(135deg, #f8f9fa, #e2e8f0);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-uv {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: white;
+            border: 2px solid #8b5cf6;
+        }
+        
+        .btn-uv:hover {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
+        }
+        
+        .validate-btn {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            border: none;
+            padding: 20px 60px;
+            border-radius: 15px;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-top: 30px;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .validate-btn:before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.6s ease;
+        }
+        
+        .validate-btn:hover {
+            background: linear-gradient(135deg, #38a169, #2f855a);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(72, 187, 120, 0.4);
+        }
+        
+        .validate-btn:hover:before {
+            width: 500px;
+            height: 500px;
+        }
+        
+        .status-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status-message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .status-message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+        
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .settings-card {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <div class="settings-card">
+            <h1 class="title">
+                <i class="fas fa-cogs"></i>
+                Configuration Scanner
+            </h1>
+            
+            <form id="settingsForm">
+                <!-- Mode de scan -->
+                <div class="section">
+                    <h2 class="section-title">
+                        <i class="fas fa-qrcode"></i>
+                        Mode de scan
+                    </h2>
+                    <div class="button-group">
+                        <div class="option-btn active" data-name="scan_mode" data-value="datamatrix">
+                            <i class="fas fa-qrcode"></i>
+                            <div class="title">DataMatrix</div>
+                            <div class="description">Scan d'une seule carte avec décodage</div>
+                        </div>
+                        <div class="option-btn" data-name="scan_mode" data-value="lot">
+                            <i class="fas fa-layer-group"></i>
+                            <div class="title">Lot</div>
+                            <div class="description">Photo uniquement, pas de décodage</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mode de détection -->
+                <div class="section">
+                    <h2 class="section-title">
+                        <i class="fas fa-search"></i>
+                        Mode de détection
+                    </h2>
+                    <div class="button-group">
+                        <div class="option-btn active" data-name="detection_mode" data-value="automatique">
+                            <i class="fas fa-magic"></i>
+                            <div class="title">Automatique</div>
+                            <div class="description">Détection automatique du DataMatrix</div>
+                        </div>
+                        <div class="option-btn" data-name="detection_mode" data-value="manuel">
+                            <i class="fas fa-hand-pointer"></i>
+                            <div class="title">Manuel</div>
+                            <div class="description">Saisie manuelle de l'OF</div>
+                        </div>
+                    </div>
+                    
+                    <div class="manual-input" id="manualInput">
+                        <label for="manualOf" class="form-label">
+                            <i class="fas fa-tag"></i>
+                            Numéro d'OF de la carte
+                        </label>
+                        <input type="text" class="form-control" id="manualOf" name="manual_of" 
+                               placeholder="Ex: AE-F22050360-00B" maxlength="50">
+                    </div>
+                </div>
+                
+                <!-- Mode d'éclairage -->
+                <div class="section">
+                    <h2 class="section-title">
+                        <i class="fas fa-lightbulb"></i>
+                        Mode d'éclairage
+                    </h2>
+                    <div class="button-group">
+                        <div class="option-btn active" data-name="lighting_mode" data-value="blanc">
+                            <i class="fas fa-sun"></i>
+                            <div class="title">Blanc</div>
+                            <div class="description">LEDs blanches standard</div>
+                        </div>
+                        <div class="option-btn" data-name="lighting_mode" data-value="uv">
+                            <i class="fas fa-radiation"></i>
+                            <div class="title">UV</div>
+                            <div class="description">Lampe UV pour marquages spéciaux</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contrôles d'éclairage -->
+                <div class="lighting-controls">
+                    <h3 class="section-title">
+                        <i class="fas fa-bolt"></i>
+                        Test éclairage
+                    </h3>
+                    <div class="text-center">
+                        <button type="button" class="lighting-btn btn-blanc" id="testBlancBtn">
+                            <i class="fas fa-sun"></i>
+                            Tester LEDs blanches
+                        </button>
+                        <button type="button" class="lighting-btn btn-uv" id="testUvBtn">
+                            <i class="fas fa-radiation"></i>
+                            Tester lampe UV
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Bouton de validation -->
+                <button type="submit" class="validate-btn">
+                    <i class="fas fa-check-circle"></i>
+                    Valider et démarrer l'application
+                </button>
+                
+                <div class="status-message" id="statusMessage"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class SettingsManager {
+            constructor() {
+                this.settings = {
+                    scan_mode: 'datamatrix',
+                    detection_mode: 'automatique',
+                    lighting_mode: 'blanc',
+                    manual_of: ''
+                };
+                
+                this.init();
+                this.loadCurrentSettings();
+            }
+            
+            init() {
+                // Gestion des boutons d'options
+                document.querySelectorAll('.option-btn').forEach(btn => {
+                    btn.addEventListener('click', () => this.handleOptionClick(btn));
+                });
+                
+                // Gestion du formulaire
+                document.getElementById('settingsForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveSettings();
+                });
+                
+                // Boutons de test d'éclairage
+                document.getElementById('testBlancBtn').addEventListener('click', () => {
+                    this.testLighting('blanc');
+                });
+                
+                document.getElementById('testUvBtn').addEventListener('click', () => {
+                    this.testLighting('uv');
+                });
+                
+                // Champ manuel
+                document.getElementById('manualOf').addEventListener('input', (e) => {
+                    this.settings.manual_of = e.target.value;
+                });
+            }
+            
+            handleOptionClick(clickedBtn) {
+                const name = clickedBtn.dataset.name;
+                const value = clickedBtn.dataset.value;
+                
+                // Désactiver les autres boutons du même groupe
+                document.querySelectorAll(`[data-name="${name}"]`).forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Activer le bouton cliqué
+                clickedBtn.classList.add('active');
+                
+                // Mettre à jour les paramètres
+                this.settings[name] = value;
+                
+                // Gestion spéciale pour le mode manuel
+                if (name === 'detection_mode') {
+                    const manualInput = document.getElementById('manualInput');
+                    if (value === 'manuel') {
+                        manualInput.classList.add('show');
+                        document.getElementById('manualOf').focus();
+                    } else {
+                        manualInput.classList.remove('show');
+                        this.settings.manual_of = '';
+                        document.getElementById('manualOf').value = '';
+                    }
+                }
+                
+                console.log('Paramètres mis à jour:', this.settings);
+            }
+            
+            async loadCurrentSettings() {
+                try {
+                    const response = await fetch('/api/settings');
+                    if (response.ok) {
+                        const currentSettings = await response.json();
+                        this.settings = { ...this.settings, ...currentSettings };
+                        this.updateUI();
+                    }
+                } catch (error) {
+                    console.log('Impossible de charger les paramètres actuels');
+                }
+            }
+            
+            updateUI() {
+                // Mettre à jour les boutons actifs
+                Object.entries(this.settings).forEach(([key, value]) => {
+                    const btn = document.querySelector(`[data-name="${key}"][data-value="${value}"]`);
+                    if (btn) {
+                        // Désactiver les autres
+                        document.querySelectorAll(`[data-name="${key}"]`).forEach(b => {
+                            b.classList.remove('active');
+                        });
+                        // Activer le bon
+                        btn.classList.add('active');
+                    }
+                });
+                
+                // Champ manuel
+                if (this.settings.detection_mode === 'manuel') {
+                    document.getElementById('manualInput').classList.add('show');
+                    document.getElementById('manualOf').value = this.settings.manual_of || '';
+                }
+            }
+            
+            async testLighting(type) {
+                try {
+                    const response = await fetch('/api/test-lighting', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ lighting_type: type })
+                    });
+                    
+                    const result = await response.json();
+                    this.showStatus(
+                        result.success ? 'success' : 'error',
+                        result.message || `Test ${type} ${result.success ? 'réussi' : 'échoué'}`
+                    );
+                } catch (error) {
+                    this.showStatus('error', `Erreur test ${type}: ${error.message}`);
+                }
+            }
+            
+            async saveSettings() {
+                try {
+                    this.showStatus('info', 'Sauvegarde en cours...');
+                    
+                    const formData = new FormData();
+                    formData.append('scan_mode', this.settings.scan_mode);
+                    formData.append('detection_mode', this.settings.detection_mode);
+                    formData.append('lighting_mode', this.settings.lighting_mode);
+                    formData.append('manual_of', this.settings.manual_of);
+                    
+                    const response = await fetch('/api/settings', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        this.showStatus('success', 'Configuration sauvegardée avec succès!');
+                        
+                        // Redirection vers l'application après 1.5 secondes
+                        setTimeout(() => {
+                            window.location.href = '/app';
+                        }, 1500);
+                    } else {
+                        throw new Error('Erreur serveur');
+                    }
+                } catch (error) {
+                    this.showStatus('error', `Erreur sauvegarde: ${error.message}`);
+                }
+            }
+            
+            showStatus(type, message) {
+                const statusElement = document.getElementById('statusMessage');
+                statusElement.className = `status-message ${type}`;
+                statusElement.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                    ${message}
+                `;
+                statusElement.style.display = 'block';
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        statusElement.style.display = 'none';
+                    }, 3000);
+                }
+            }
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            new SettingsManager();
+        });
+    </script>
+</body>
+</html>

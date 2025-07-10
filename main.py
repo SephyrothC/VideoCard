@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CameraManager optimisé pour flux vidéo rapide avec bonnes couleurs
-Améliorations de performance tout en gardant l'ancien style qui marchait
+NOUVEAU: Système de paramétrage avec modes DataMatrix/Lot et Automatique/Manuel
 """
 
 import asyncio
@@ -21,8 +21,8 @@ import cv2
 import numpy as np
 import serial
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form
+from fastapi.responses import HTMLResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from picamera2 import Picamera2
 from picamera2.encoders import MJPEGEncoder
@@ -41,10 +41,18 @@ IMAGES_DIR = Path("images")
 IMAGES_DIR.mkdir(exist_ok=True)
 
 # Variables globales
-app = FastAPI(title="DataMatrix Scanner", version="1.0.0")
+app = FastAPI(title="DataMatrix Scanner", version="2.0.0")
 camera: Optional[Picamera2] = None
 serial_connection: Optional[serial.Serial] = None
 current_websocket: Optional[WebSocket] = None
+
+# NOUVELLES VARIABLES DE CONFIGURATION
+app_settings = {
+    "scan_mode": "datamatrix",  # "datamatrix" ou "lot"
+    "detection_mode": "automatique",  # "automatique" ou "manuel"
+    "lighting_mode": "blanc",  # "blanc" ou "uv"
+    "manual_of": ""  # OF manuel si mode manuel
+}
 
 # Montage des fichiers statiques
 app.mount("/images", StaticFiles(directory="images"), name="images")
@@ -292,11 +300,17 @@ class OptimizedCameraManager:
         zoomed = cv2.resize(crop, (w, h), interpolation=cv2.INTER_LINEAR)
         return zoomed
     
-    async def capture_photo(self) -> str:
+    async def capture_photo(self, manual_of: str = None) -> str:
         """Capture photo OPTIMISÉE - Moins d'interruptions du flux"""
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{timestamp}.jpg"
+            
+            # Nom de fichier avec OF si manuel
+            if manual_of:
+                filename = f"{timestamp}_{manual_of}.jpg"
+            else:
+                filename = f"{timestamp}.jpg"
+                
             filepath = IMAGES_DIR / filename
             
             # OPTIMISATION: Pause plus courte du streaming
@@ -445,10 +459,8 @@ class OptimizedCameraManager:
         logger.info("Caméra arrêtée proprement")
 
 
-# Reste du code identique - seulement remplacer CameraManager par OptimizedCameraManager
-
 def decode_datamatrix(image_path: str) -> Optional[str]:
-    """Décode un code DataMatrix à partir d'une image - INCHANGÉ"""
+    """Décode un code DataMatrix à partir d'une image"""
     try:
         image = cv2.imread(image_path)
         if image is None:
@@ -494,7 +506,7 @@ def decode_datamatrix(image_path: str) -> Optional[str]:
 
 
 def extract_white_label(gray_image):
-    """Extrait le label blanc - INCHANGÉ"""
+    """Extrait le label blanc"""
     try:
         _, thresh = cv2.threshold(gray_image, 220, 255, cv2.THRESH_BINARY)
         kernel = np.ones((3, 3), np.uint8)
@@ -557,7 +569,7 @@ def extract_white_label(gray_image):
 
 
 def rotate_image(image, angle):
-    """Rotation d'image - INCHANGÉ"""
+    """Rotation d'image"""
     if angle == 0:
         return image
     elif angle == 90:
@@ -569,7 +581,7 @@ def rotate_image(image, angle):
 
 
 def get_latest_images(count: int = 3) -> list:
-    """Dernières images - INCHANGÉ"""
+    """Dernières images"""
     try:
         image_files = list(IMAGES_DIR.glob("*.jpg"))
         image_files = [f for f in image_files if "_debug" not in f.name]
@@ -581,7 +593,7 @@ def get_latest_images(count: int = 3) -> list:
 
 
 def init_serial_connection():
-    """Initialise connexion série - INCHANGÉ"""
+    """Initialise connexion série"""
     global serial_connection
     try:
         serial_connection = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
@@ -590,12 +602,12 @@ def init_serial_connection():
         logger.warning(f"Connexion série non disponible: {e}")
 
 
-def send_serial_signal():
-    """Envoie signal série - INCHANGÉ"""
+def send_serial_signal(signal_byte: bytes = b'\x01'):
+    """Envoie signal série avec byte personnalisé"""
     try:
         if serial_connection and serial_connection.is_open:
-            serial_connection.write(b'\x01')
-            logger.info("Signal série envoyé")
+            serial_connection.write(signal_byte)
+            logger.info(f"Signal série envoyé: {signal_byte}")
             return True
         else:
             logger.warning("Connexion série non disponible")
@@ -605,7 +617,7 @@ def send_serial_signal():
         return False
 
 
-# CHANGEMENT PRINCIPAL: Utiliser OptimizedCameraManager au lieu de CameraManager
+# Gestionnaire de caméra global
 camera_manager = OptimizedCameraManager()
 
 
@@ -629,10 +641,51 @@ async def shutdown_event():
 
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root():
-    """Page d'accueil"""
-    with open("index.html", "r", encoding="utf-8") as f:
+async def read_settings():
+    """Page de paramétrage (nouvelle page d'accueil)"""
+    with open("settings.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
+
+
+@app.get("/app", response_class=HTMLResponse)
+async def read_app():
+    """Page d'application principale"""
+    with open("app.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
+@app.post("/api/settings")
+async def update_settings(
+    scan_mode: str = Form(...),
+    detection_mode: str = Form(...),
+    lighting_mode: str = Form(...),
+    manual_of: str = Form(default="")
+):
+    """Met à jour les paramètres"""
+    global app_settings
+    
+    app_settings.update({
+        "scan_mode": scan_mode,
+        "detection_mode": detection_mode,
+        "lighting_mode": lighting_mode,
+        "manual_of": manual_of
+    })
+    
+    logger.info(f"Paramètres mis à jour: {app_settings}")
+    
+    # Envoyer le signal d'éclairage approprié
+    if lighting_mode == "blanc":
+        send_serial_signal(b'\x01')
+    elif lighting_mode == "uv":
+        send_serial_signal(b'\x02')
+    
+    return {"status": "success", "settings": app_settings}
+
+
+@app.get("/api/settings")
+async def get_settings():
+    """Récupère les paramètres actuels"""
+    return app_settings
 
 
 @app.get("/video_feed")
@@ -646,7 +699,7 @@ async def video_feed():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket pour pilotage à distance - INCHANGÉ"""
+    """WebSocket pour pilotage à distance"""
     global current_websocket
     await websocket.accept()
     current_websocket = websocket
@@ -675,8 +728,27 @@ async def websocket_endpoint(websocket: WebSocket):
                     }))
                 
                 elif "serial" in message:
+                    # Signal série générique
                     success = send_serial_signal()
                     status = "Signal série envoyé" if success else "Échec envoi signal série"
+                    await websocket.send_text(json.dumps({
+                        "type": "status",
+                        "message": status
+                    }))
+                
+                elif "lighting" in message:
+                    # Contrôle d'éclairage spécifique
+                    lighting_type = message["lighting"]
+                    if lighting_type == "blanc":
+                        success = send_serial_signal(b'\x01')
+                        status = "LEDs blanches activées" if success else "Erreur LEDs blanches"
+                    elif lighting_type == "uv":
+                        success = send_serial_signal(b'\x02')
+                        status = "Lampe UV activée" if success else "Erreur lampe UV"
+                    else:
+                        success = False
+                        status = "Type d'éclairage inconnu"
+                    
                     await websocket.send_text(json.dumps({
                         "type": "status",
                         "message": status
@@ -702,42 +774,70 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 async def handle_capture_command(websocket: WebSocket):
-    """Gère la commande de capture - INCHANGÉ"""
+    """Gère la commande de capture selon les paramètres"""
     try:
         await websocket.send_text(json.dumps({
             "type": "status",
             "message": "Capture en cours..."
         }))
         
-        photo_path = await camera_manager.capture_photo()
+        # Détermine l'OF à utiliser
+        manual_of = None
+        if app_settings["detection_mode"] == "manuel" and app_settings["manual_of"]:
+            manual_of = app_settings["manual_of"]
         
-        await websocket.send_text(json.dumps({
-            "type": "status",
-            "message": "Décodage DataMatrix..."
-        }))
+        # Capture de la photo
+        photo_path = await camera_manager.capture_photo(manual_of)
         
-        datamatrix_result = decode_datamatrix(photo_path)
+        # Traitement selon le mode de scan
+        datamatrix_result = None
+        
+        if app_settings["scan_mode"] == "datamatrix":
+            # Mode DataMatrix - décodage automatique
+            await websocket.send_text(json.dumps({
+                "type": "status",
+                "message": "Décodage DataMatrix..."
+            }))
+            datamatrix_result = decode_datamatrix(photo_path)
+        elif app_settings["scan_mode"] == "lot":
+            # Mode Lot - pas de décodage DataMatrix
+            if app_settings["detection_mode"] == "manuel" and app_settings["manual_of"]:
+                datamatrix_result = app_settings["manual_of"]
+            else:
+                datamatrix_result = "Mode Lot - Photo uniquement"
+        
+        # Récupération des dernières images
         latest_images = get_latest_images(3)
         
+        # Envoi du résultat
         result = {
             "type": "capture_result",
             "photo_path": f"/images/{Path(photo_path).name}",
             "datamatrix": datamatrix_result,
             "latest_images": latest_images,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "scan_mode": app_settings["scan_mode"],
+            "detection_mode": app_settings["detection_mode"]
         }
         
         await websocket.send_text(json.dumps(result))
         
-        if datamatrix_result:
-            await websocket.send_text(json.dumps({
-                "type": "status",
-                "message": f"Code détecté: {datamatrix_result}"
-            }))
+        # Message de statut final
+        if app_settings["scan_mode"] == "datamatrix":
+            if datamatrix_result:
+                await websocket.send_text(json.dumps({
+                    "type": "status",
+                    "message": f"Code détecté: {datamatrix_result}"
+                }))
+            else:
+                await websocket.send_text(json.dumps({
+                    "type": "status",
+                    "message": "Aucun code DataMatrix détecté"
+                }))
         else:
             await websocket.send_text(json.dumps({
                 "type": "status",
-                "message": "Aucun code DataMatrix détecté"
+                "message": f"Photo capturée en mode {app_settings['scan_mode']}"
             }))
             
     except Exception as e:
@@ -749,7 +849,7 @@ async def handle_capture_command(websocket: WebSocket):
 
 
 async def handle_focus_command(websocket: WebSocket):
-    """Gère la commande de focus - INCHANGÉ"""
+    """Gère la commande de focus"""
     try:
         await websocket.send_text(json.dumps({
             "type": "status",
@@ -772,7 +872,7 @@ async def handle_focus_command(websocket: WebSocket):
 
 
 def signal_handler(signum, frame):
-    """Gestionnaire de signaux - INCHANGÉ"""
+    """Gestionnaire de signaux"""
     logger.info(f"Signal {signum} reçu, arrêt en cours...")
     camera_manager.stop()
     if serial_connection:
