@@ -1,0 +1,23 @@
+# FastAPI et serveur web
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+websockets==12.0
+
+# Vision par ordinateur
+opencv-python==4.8.1.78
+numpy==1.24.3
+Pillow==10.0.1
+
+# Caméra Raspberry Pi
+picamera2==0.3.12
+
+# Décodage DataMatrix
+pylibdmtx==0.1.10
+
+# Communication série
+pyserial==3.5
+
+# Utilitaires
+python-dateutil==2.8.2
+pathlib2==2.3.7

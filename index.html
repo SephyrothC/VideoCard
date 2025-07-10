@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataMatrix Scanner - Caméra Pi</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .video-feed {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            object-fit: contain;
+            cursor: crosshair;
+        }
+        
+        .zoom-indicator {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            display: none;
+        }
+        
+        .control-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .btn-custom {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-capture {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border: none;
+            color: white;
+        }
+        
+        .btn-capture:hover {
+            background: linear-gradient(135deg, #218838, #1aa085);
+            transform: translateY(-2px);
+        }
+        
+        .btn-focus {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border: none;
+            color: white;
+        }
+        
+        .btn-focus:hover {
+            background: linear-gradient(135deg, #0056b3, #004085);
+            transform: translateY(-2px);
+        }
+        
+        .btn-serial {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            border: none;
+            color: #212529;
+        }
+        
+        .btn-serial:hover {
+            background: linear-gradient(135deg, #e0a800, #d39e00);
+            transform: translateY(-2px);
+        }
+        
+        .btn-zoom-reset {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            border: none;
+            color: white;
+        }
+        
+        .btn-zoom-reset:hover {
+            background: linear-gradient(135deg, #5a6268, #495057);
+            transform: translateY(-2px);
+        }
+        
+        .status-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-height: 150px;
+        }
+        
+        .status-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .status-indicator.error {
+            background: #dc3545;
+        }
+        
+        .status-indicator.warning {
+            background: #ffc107;
+        }
+        
+        .status-messages {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .message {
+            margin-bottom: 5px;
+            padding: 3px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .message:last-child {
+            border-bottom: none;
+        }
+        
+        .message.error {
+            color: #dc3545;
+        }
+        
+        .message.success {
+            color: #28a745;
+        }
+        
+        .message.info {
+            color: #007bff;
+        }
+        
+        .gallery {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .gallery-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        
+        .gallery-item {
+            position: relative;
+            aspect-ratio: 4/3;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .gallery-item:hover {
+            transform: scale(1.05);
+        }
+        
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .gallery-item .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .modal-content {
+            border-radius: 10px;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .connection-status.connected {
+            background: #28a745;
+            color: white;
+        }
+        
+        .connection-status.disconnected {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .connection-status.connecting {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        .datamatrix-result {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #0d47a1;
+            word-break: break-all;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            display: none;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .control-panel {
+                margin-bottom: 15px;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Indicateur de connexion -->
+    <div id="connectionStatus" class="connection-status connecting">
+        <i class="fas fa-wifi"></i> Connexion...
+    </div>
+
+    <!-- Overlay de chargement -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <div id="loadingMessage">Traitement en cours...</div>
+        </div>
+    </div>
+
+    <div class="container-fluid py-4">
+
+        <div class="row">
+            <!-- Flux vidéo et galerie (partie gauche) -->
+            <div class="col-lg-8">
+                <!-- Flux vidéo -->
+                <div class="video-container mb-4">
+                    <img id="videoFeed" class="video-feed" src="/video_feed" alt="Flux vidéo">
+                    <div id="zoomIndicator" class="zoom-indicator">
+                        <i class="fas fa-search-plus"></i> Zoom: 2x
+                    </div>
+                </div>
+
+                <!-- Galerie des dernières photos -->
+                <div class="gallery">
+                    <h3 class="gallery-title">
+                        <i class="fas fa-images"></i> Dernières captures
+                    </h3>
+                    <div id="galleryGrid" class="gallery-grid">
+                        <!-- Les images seront ajoutées dynamiquement -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panneau de contrôle (partie droite) -->
+            <div class="col-lg-4">
+                <!-- Boutons de contrôle -->
+                <div class="control-panel">
+                    <h4 class="text-center mb-3">
+                        <i class="fas fa-gamepad"></i> Contrôles
+                    </h4>
+                    
+                    <button id="captureBtn" class="btn btn-capture btn-custom">
+                        <i class="fas fa-camera"></i> Prendre une photo
+                    </button>
+                    
+                    <button id="focusBtn" class="btn btn-focus btn-custom">
+                        <i class="fas fa-adjust"></i> Réoptimiser exposition
+                    </button>
+                    
+                    <button id="zoomResetBtn" class="btn btn-zoom-reset btn-custom">
+                        <i class="fas fa-search-minus"></i> Réinitialiser zoom
+                    </button>
+                    
+                    <button id="serialBtn" class="btn btn-serial btn-custom">
+                        <i class="fas fa-bolt"></i> Signal série
+                    </button>
+                </div>
+
+                <!-- Panneau de statut -->
+                <div class="status-panel">
+                    <div class="status-title">
+                        <div id="statusIndicator" class="status-indicator"></div>
+                        <i class="fas fa-info-circle"></i> Statut système
+                    </div>
+                    <div id="statusMessages" class="status-messages">
+                        <div class="message info">
+                            <i class="fas fa-clock"></i> [<span id="currentTime"></span>] Système initialisé
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Résultat DataMatrix -->
+                <div id="datamatrixPanel" class="control-panel" style="display: none;">
+                    <h5 class="text-center mb-3">
+                        <i class="fas fa-qrcode"></i> Code détecté
+                    </h5>
+                    <div id="datamatrixResult" class="datamatrix-result">
+                        Aucun code détecté
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour affichage des images -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">
+                        <i class="fas fa-image"></i> Aperçu de l'image
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" class="img-fluid" src="" alt="Image">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class DataMatrixScanner {
+            constructor() {
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.isCapturing = false;
+                this.isFocusing = false;
+                this.currentZoom = 1;
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                this.connectWebSocket();
+                this.updateCurrentTime();
+                
+                // Mise à jour de l'heure toutes les secondes
+                setInterval(() => this.updateCurrentTime(), 1000);
+            }
+
+            initializeElements() {
+                // Éléments du DOM
+                this.videoFeed = document.getElementById('videoFeed');
+                this.captureBtn = document.getElementById('captureBtn');
+                this.focusBtn = document.getElementById('focusBtn');
+                this.zoomResetBtn = document.getElementById('zoomResetBtn');
+                this.serialBtn = document.getElementById('serialBtn');
+                this.statusMessages = document.getElementById('statusMessages');
+                this.statusIndicator = document.getElementById('statusIndicator');
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.loadingOverlay = document.getElementById('loadingOverlay');
+                this.loadingMessage = document.getElementById('loadingMessage');
+                this.galleryGrid = document.getElementById('galleryGrid');
+                this.datamatrixPanel = document.getElementById('datamatrixPanel');
+                this.datamatrixResult = document.getElementById('datamatrixResult');
+                this.zoomIndicator = document.getElementById('zoomIndicator');
+                this.currentTime = document.getElementById('currentTime');
+                this.imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+                this.modalImage = document.getElementById('modalImage');
+            }
+
+            setupEventListeners() {
+                // Bouton de capture
+                this.captureBtn.addEventListener('click', () => {
+            if (!this.isCapturing) {
+                this.capturePhoto();
+            }
+        });
+                
+                // Bouton de focus
+                this.focusBtn.addEventListener('click', () => this.autoFocus());
+                
+                // Bouton de reset zoom
+                this.zoomResetBtn.addEventListener('click', () => this.resetZoom());
+                
+                // Bouton signal série
+                this.serialBtn.addEventListener('click', () => this.sendSerialSignal());
+                
+                // Clic sur la vidéo pour zoom
+                this.videoFeed.addEventListener('click', (e) => this.handleVideoClick(e));
+                
+                // Gestion des erreurs de l'image vidéo
+                this.videoFeed.addEventListener('error', () => {
+                    this.addStatusMessage('Erreur de connexion au flux vidéo', 'error');
+                });
+                
+                // Rechargement de la page si perte de connexion vidéo
+                this.videoFeed.addEventListener('load', () => {
+                    this.addStatusMessage('Flux vidéo reconnecté', 'success');
+                });
+            }
+
+            connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws`;
+                
+                this.addStatusMessage('Connexion au WebSocket...', 'info');
+                this.updateConnectionStatus('connecting');
+                
+                this.ws = new WebSocket(wsUrl);
+                
+                this.ws.onopen = () => {
+                    this.addStatusMessage('WebSocket connecté', 'success');
+                    this.updateConnectionStatus('connected');
+                    this.reconnectAttempts = 0;
+                    this.updateStatusIndicator('success');
+                };
+                
+                this.ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        this.handleWebSocketMessage(data);
+                    } catch (error) {
+                        console.error('Erreur parsing WebSocket:', error);
+                        this.addStatusMessage('Erreur de communication', 'error');
+                    }
+                };
+                
+                this.ws.onclose = () => {
+                    this.addStatusMessage('WebSocket déconnecté', 'error');
+                    this.updateConnectionStatus('disconnected');
+                    this.updateStatusIndicator('error');
+                    this.attemptReconnect();
+                };
+                
+                this.ws.onerror = (error) => {
+                    console.error('Erreur WebSocket:', error);
+                    this.addStatusMessage('Erreur WebSocket', 'error');
+                    this.updateStatusIndicator('error');
+                };
+            }
+
+            attemptReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    this.addStatusMessage(`Tentative de reconnexion ${this.reconnectAttempts}/${this.maxReconnectAttempts}`, 'info');
+                    
+                    setTimeout(() => {
+                        this.connectWebSocket();
+                    }, this.reconnectDelay * this.reconnectAttempts);
+                } else {
+                    this.addStatusMessage('Impossible de se reconnecter', 'error');
+                    this.updateConnectionStatus('disconnected');
+                }
+            }
+
+            handleWebSocketMessage(data) {
+                switch (data.type) {
+                    case 'status':
+                        this.addStatusMessage(data.message, 'info');
+                        break;
+                        
+                    case 'error':
+                        this.addStatusMessage(data.message, 'error');
+                        this.hideLoading();
+                        this.resetButtons();
+                        break;
+                        
+                    case 'capture_result':
+                        this.handleCaptureResult(data);
+                        break;
+                        
+                    default:
+                        console.log('Message WebSocket non géré:', data);
+                }
+            }
+
+            handleCaptureResult(data) {
+                this.hideLoading();
+                this.resetButtons();
+                
+                // Mise à jour de la galerie
+                if (data.latest_images) {
+                    this.updateGallery(data.latest_images);
+                }
+                
+                // Affichage du résultat DataMatrix
+                if (data.datamatrix) {
+                    this.showDataMatrixResult(data.datamatrix);
+                    this.addStatusMessage(`Code détecté: ${data.datamatrix}`, 'success');
+                } else {
+                    this.hideDataMatrixResult();
+                    this.addStatusMessage('Aucun code DataMatrix détecté', 'warning');
+                }
+            }
+
+            capturePhoto() {
+                if (this.isCapturing || !this.isWebSocketReady()) return;
+                
+                this.isCapturing = true;
+                this.showLoading('Capture en cours...');
+                this.disableButton(this.captureBtn, 'Capture...');
+                
+                this.ws.send('capture');
+            }
+
+            autoFocus() {
+                if (this.isFocusing || !this.isWebSocketReady()) return;
+                
+                this.isFocusing = true;
+                this.disableButton(this.focusBtn, 'Focus...');
+                
+                this.ws.send('focus');
+                
+                // Timeout pour le focus (8 secondes + marge)
+                setTimeout(() => {
+                    this.isFocusing = false;
+                    this.resetButtons();
+                }, 10000);
+            }
+
+            resetZoom() {
+                if (!this.isWebSocketReady()) return;
+                
+                this.currentZoom = 1;
+                this.zoomIndicator.style.display = 'none';
+                this.ws.send(JSON.stringify({ resetZoom: true }));
+                this.addStatusMessage('Zoom réinitialisé', 'info');
+            }
+
+            sendSerialSignal() {
+                if (!this.isWebSocketReady()) return;
+                
+                this.ws.send(JSON.stringify({ serial: true }));
+            }
+
+            handleVideoClick(event) {
+                if (!this.isWebSocketReady()) return;
+                
+                const rect = this.videoFeed.getBoundingClientRect();
+                const x = (event.clientX - rect.left) / rect.width;
+                const y = (event.clientY - rect.top) / rect.height;
+                
+                // Envoi des coordonnées de zoom
+                this.ws.send(JSON.stringify({ zoomTo: [x, y] }));
+                
+                // Affichage de l'indicateur de zoom
+                this.currentZoom = 2;
+                this.zoomIndicator.style.display = 'block';
+                
+                this.addStatusMessage(`Zoom sur (${(x*100).toFixed(0)}%, ${(y*100).toFixed(0)}%)`, 'info');
+            }
+
+            updateGallery(images) {
+                this.galleryGrid.innerHTML = '';
+                
+                images.forEach((imagePath, index) => {
+                    const galleryItem = document.createElement('div');
+                    galleryItem.className = 'gallery-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = imagePath;
+                    img.alt = `Capture ${index + 1}`;
+                    img.loading = 'lazy';
+                    
+                    const overlay = document.createElement('div');
+                    overlay.className = 'overlay';
+                    overlay.innerHTML = `<i class="fas fa-search-plus"></i> Capture ${index + 1}`;
+                    
+                    galleryItem.appendChild(img);
+                    galleryItem.appendChild(overlay);
+                    
+                    // Clic pour agrandir
+                    galleryItem.addEventListener('click', () => {
+                        this.modalImage.src = imagePath;
+                        this.imageModal.show();
+                    });
+                    
+                    this.galleryGrid.appendChild(galleryItem);
+                });
+            }
+
+            showDataMatrixResult(code) {
+                this.datamatrixResult.textContent = code;
+                this.datamatrixPanel.style.display = 'block';
+            }
+
+            hideDataMatrixResult() {
+                this.datamatrixPanel.style.display = 'none';
+            }
+
+            addStatusMessage(message, type = 'info') {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                
+                const icon = {
+                    'info': 'fas fa-info-circle',
+                    'success': 'fas fa-check-circle',
+                    'error': 'fas fa-exclamation-triangle',
+                    'warning': 'fas fa-exclamation-circle'
+                }[type] || 'fas fa-info-circle';
+                
+                messageDiv.innerHTML = `
+                    <i class="${icon}"></i> 
+                    [${new Date().toLocaleTimeString()}] ${message}
+                `;
+                
+                this.statusMessages.appendChild(messageDiv);
+                this.statusMessages.scrollTop = this.statusMessages.scrollHeight;
+                
+                // Limiter le nombre de messages
+                const messages = this.statusMessages.querySelectorAll('.message');
+                if (messages.length > 20) {
+                    messages[0].remove();
+                }
+            }
+
+            updateStatusIndicator(status) {
+                this.statusIndicator.className = `status-indicator ${status}`;
+            }
+
+            updateConnectionStatus(status) {
+                this.connectionStatus.className = `connection-status ${status}`;
+                
+                const statusText = {
+                    'connecting': 'Connexion...',
+                    'connected': 'Connecté',
+                    'disconnected': 'Déconnecté'
+                }[status] || 'Inconnu';
+                
+                const icon = {
+                    'connecting': 'fas fa-spinner fa-spin',
+                    'connected': 'fas fa-wifi',
+                    'disconnected': 'fas fa-wifi-slash'
+                }[status] || 'fas fa-question';
+                
+                this.connectionStatus.innerHTML = `<i class="${icon}"></i> ${statusText}`;
+            }
+
+            showLoading(message) {
+                this.loadingMessage.textContent = message;
+                this.loadingOverlay.style.display = 'flex';
+            }
+
+            hideLoading() {
+                this.loadingOverlay.style.display = 'none';
+            }
+
+            disableButton(button, text) {
+                button.disabled = true;
+                button.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${text}`;
+            }
+
+            resetButtons() {
+                this.isCapturing = false;
+                this.isFocusing = false;
+                
+                this.captureBtn.disabled = false;
+                this.captureBtn.innerHTML = '<i class="fas fa-camera"></i> Prendre une photo';
+                
+                this.focusBtn.disabled = false;
+                this.focusBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Refocus manuel';
+            }
+
+            updateCurrentTime() {
+                const now = new Date();
+                this.currentTime.textContent = now.toLocaleTimeString();
+            }
+
+            isWebSocketReady() {
+                return this.ws && this.ws.readyState === WebSocket.OPEN;
+            }
+        }
+
+        // Initialisation de l'application
+        document.addEventListener('DOMContentLoaded', () => {
+            new DataMatrixScanner();
+        });
+    </script>
+</body>
+</html>
