@@ -1,64 +1,57 @@
-# 📷 DataMatrix Scanner
+# 📷 DataMatrix Scanner v2.0
 
-Application web complète pour la capture d'images et la détection de codes DataMatrix sur Raspberry Pi 5 avec caméra OV64A40.
+Application web avancée pour la capture d'images et la détection de codes DataMatrix sur Raspberry Pi 5 avec caméra OV64A40. Cette version 2.0 inclut un système de paramétrage flexible avec modes DataMatrix/Lot et détection Automatique/Manuel.
 
-## 🎯 Fonctionnalités
+## 🎯 Nouvelles fonctionnalités v2.0
 
-### Backend (FastAPI)
-- ✅ Serveur FastAPI avec routes optimisées
-- ✅ Flux vidéo MJPEG temps réel (`/video_feed`)
-- ✅ WebSocket pour contrôle à distance (`/ws`)
-- ✅ Gestion asynchrone de la caméra Picamera2
-- ✅ Capture photo haute résolution (4656x3496)
-- ✅ Autofocus continu (8 secondes)
-- ✅ Zoom interactif par clic sur le flux vidéo
-- ✅ Décodage automatique des codes DataMatrix
-- ✅ Extraction intelligente des labels blancs
-- ✅ Communication série optionnelle
-- ✅ Sauvegarde automatique des images
+### Système de paramétrage complet
+- ✅ **Page de configuration** : Interface intuitive pour paramétrer l'application
+- ✅ **Mode DataMatrix** : Scan d'une seule carte avec décodage automatique
+- ✅ **Mode Lot** : Capture photo uniquement sans décodage DataMatrix
+- ✅ **Détection automatique** : Utilise l'algorithme de détection existant
+- ✅ **Détection manuelle** : Saisie manuelle de l'OF (référence carte)
+- ✅ **Contrôle d'éclairage** : LEDs blanches (0x01) ou lampe UV (0x02)
+- ✅ **Navigation fluide** : Passage entre configuration et application
 
-### Frontend (Bootstrap 5)
-- ✅ Interface responsive et moderne
-- ✅ Flux vidéo en temps réel
-- ✅ Galerie des 3 dernières captures
-- ✅ Boutons de contrôle intuitifs
-- ✅ Indicateurs de statut en temps réel
-- ✅ Gestion des erreurs et reconnexion automatique
-- ✅ Modal d'aperçu des images
-- ✅ Animations et effets visuels
+### Backend amélioré (FastAPI)
+- ✅ **Nouvelle architecture** : Page paramètres (`/`) et application (`/app`)
+- ✅ **API REST** : Sauvegarde/chargement des paramètres via `/api/settings`
+- ✅ **Contrôle série avancé** : Signaux personnalisés pour éclairage
+- ✅ **Nommage intelligent** : Fichiers avec OF manuel si configuré
+- ✅ **Gestion contextuelle** : Comportement adapté selon les paramètres
 
-### Traitement d'image
-- ✅ Détection automatique des labels blancs
-- ✅ Seuillage adaptatif optimisé
-- ✅ Tentatives de décodage avec rotations (0°/90°/180°/270°)
-- ✅ Morphologie mathématique pour nettoyage
-- ✅ Sauvegarde des étapes de debug
-- ✅ Gestion robuste des erreurs
+### Frontend modernisé
+- ✅ **Interface responsive** : Design moderne avec gradients et animations
+- ✅ **Configuration visuelle** : Boutons interactifs pour tous les paramètres
+- ✅ **Indicateurs de statut** : Affichage de la configuration active
+- ✅ **Test d'éclairage** : Boutons pour tester LEDs et UV
+- ✅ **Retour visuel** : Messages de statut et animations fluides
 
 ## 🛠️ Installation
 
 ### Prérequis
 - Raspberry Pi 5
 - Caméra OV64A40 (ou compatible Picamera2)
+- Arduino Nano pour contrôle d'éclairage
 - Raspbian OS 64-bit
 - Python 3.9+
 
-### Installation automatique
+### Installation automatique avec Makefile
 
 ```bash
 # Clonage du projet
 git clone <repository-url>
 cd datamatrix_scanner
 
-# Copie des fichiers de configuration
-cp requirements.txt .
-cp install.sh .
+# Installation complète
+make setup
+make install-deps
 
-# Rendre le script exécutable
-chmod +x install.sh
+# Vérification du système
+make check
 
-# Lancement de l'installation
-./install.sh
+# Démarrage
+make start
 ```
 
 ### Installation manuelle
@@ -76,7 +69,7 @@ sudo apt install -y python3-pip python3-venv python3-dev build-essential \
 sudo raspi-config nonint do_camera 0
 
 # Création de l'environnement virtuel
-python3 -m venv venv
+python3 -m venv venv --system-site-packages
 source venv/bin/activate
 
 # Installation des dépendances Python
@@ -91,36 +84,45 @@ sudo reboot
 
 ## 🚀 Utilisation
 
-### Démarrage rapide
+### Démarrage rapide avec Makefile
 
 ```bash
-# Activation de l'environnement virtuel
-source venv/bin/activate
+# Démarrage en production
+make start
 
-# Lancement du serveur
-python run.py start
+# Mode développement
+make dev
+
+# Tests système complets
+make test
+
+# Statut du système
+make status
+
+# Nettoyage
+make clean
 ```
 
 ### Modes de fonctionnement
 
 ```bash
-# Mode production (par défaut)
+# Mode production
 python run.py start
 
-# Mode développement (rechargement auto)
+# Mode développement avec rechargement auto
 python run.py dev
 
-# Tests système
+# Tests et diagnostics
 python run.py test
 
-# Statut du système
+# Affichage du statut
 python run.py status
 
 # Nettoyage des anciens fichiers
 python run.py clean
 ```
 
-### Options avancées
+### Configuration avancée
 
 ```bash
 # Personnalisation de l'adresse et du port
@@ -129,236 +131,290 @@ python run.py start --host 192.168.1.100 --port 8080
 # Mode debug
 python run.py start --debug
 
-# Aide
+# Aide complète
 python run.py --help
 ```
 
-## 🌐 Interface Web
+## 🌐 Interface Web v2.0
 
-Une fois le serveur démarré, accédez à l'interface via :
+### Page de Configuration (`/`)
+Une fois le serveur démarré, accédez à la configuration via :
 - **Local** : http://localhost:8000
 - **Réseau** : http://[IP_DU_RASPBERRY]:8000
 
-### Utilisation de l'interface
+#### Paramètres disponibles :
 
-1. **Flux vidéo** : Visualisation temps réel de la caméra
-2. **Zoom** : Cliquez sur le flux pour zoomer à un point précis
-3. **Capture** : Bouton 📸 pour prendre une photo haute résolution
-4. **Focus** : Bouton 🔍 pour déclencher l'autofocus
-5. **Reset Zoom** : Bouton 🔘 pour revenir au zoom 1x
-6. **Signal série** : Bouton ⚡ pour envoyer un signal série
-7. **Galerie** : Visualisation des 3 dernières captures
-8. **Statut** : Messages en temps réel et indicateurs de connexion
+1. **Mode de scan**
+   - **DataMatrix** : Scan d'une seule carte avec décodage automatique
+   - **Lot** : Capture photo uniquement, pas de décodage
 
-## 📁 Structure du projet
+2. **Mode de détection**
+   - **Automatique** : Utilise l'algorithme de détection de labels blancs
+   - **Manuel** : Permet de saisir manuellement l'OF de la carte
+
+3. **Mode d'éclairage**
+   - **Blanc** : Active les LEDs blanches via signal série 0x01
+   - **UV** : Active la lampe UV via signal série 0x02
+
+4. **Test d'éclairage** : Boutons pour tester chaque type d'éclairage
+
+### Page Application (`/app`)
+Interface principale de capture avec :
+
+1. **Flux vidéo temps réel** : Prévisualisation 1280x720
+2. **Contrôles adaptatifs** : Boutons qui changent selon la configuration
+3. **Galerie intelligente** : Affichage des 3 dernières captures
+4. **Statut en temps réel** : Messages et indicateurs de fonctionnement
+5. **Zoom interactif** : Clic sur le flux pour zoomer
+6. **Paramètres visibles** : Affichage de la configuration active
+
+## 📁 Structure du projet v2.0
 
 ```
 datamatrix_scanner/
-├── main.py              # Serveur FastAPI principal
+├── main.py              # Serveur FastAPI avec nouvelles routes
 ├── config.py            # Configuration de l'application
-├── run.py               # Script de lancement
-├── index.html           # Interface utilisateur
+├── run.py               # Script de lancement amélioré
+├── settings.html        # Page de paramétrage (nouvelle)
+├── app.html            # Interface principale (ex-index.html)
 ├── requirements.txt     # Dépendances Python
 ├── install.sh          # Script d'installation
-├── README.md           # Documentation
+├── Makefile            # Commandes automatisées
+├── README.md           # Documentation complète
 ├── images/             # Dossier des captures
 ├── logs/               # Journaux d'activité
+├── test/               # Scripts de test
+├── backup/             # Sauvegardes automatiques
 └── venv/               # Environnement virtuel
 ```
 
-## ⚙️ Configuration
+## ⚙️ Configuration v2.0
 
-### Fichier `config.py`
-
-Personnalisez les paramètres dans `config.py` :
-
+### Paramètres par défaut
 ```python
-# Résolutions de caméra
-CAMERA_CONFIG = {
-    "stream_resolution": (640, 480),      # Flux vidéo
-    "capture_resolution": (4656, 3496),   # Photos HD
-    "preview_resolution": (1280, 720),    # Prévisualisation
+app_settings = {
+    "scan_mode": "datamatrix",      # "datamatrix" ou "lot"
+    "detection_mode": "automatique", # "automatique" ou "manuel"
+    "lighting_mode": "blanc",       # "blanc" ou "uv"
+    "manual_of": ""                 # OF manuel si mode manuel
 }
+```
 
-# Traitement d'image
-IMAGE_PROCESSING = {
-    "white_threshold": 200,               # Seuil de blanc
-    "min_contour_area": 1000,             # Surface mini contour
-    "rotation_angles": [0, 90, 180, 270], # Rotations à tester
-}
-
-# Communication série
-SERIAL_CONFIG = {
-    "port": "/dev/ttyUSB0",
-    "baudrate": 9600,
-    "signal_byte": b'\x01',
+### Configuration série
+```python
+SERIAL_SIGNALS = {
+    "leds_blanches": b'\x01',  # Signal pour LEDs blanches
+    "lampe_uv": b'\x02',       # Signal pour lampe UV
+    "signal_generique": b'\x01' # Signal par défaut
 }
 ```
 
 ### Variables d'environnement
-
 ```bash
-# Mode de fonctionnement
-export DATAMATRIX_ENV=production  # ou development, test
-
-# Configuration personnalisée
+export DATAMATRIX_ENV=production    # ou development, test
 export DATAMATRIX_HOST=0.0.0.0
 export DATAMATRIX_PORT=8000
 ```
 
-## 🔧 API WebSocket
+## 🔧 API v2.0
 
-### Messages supportés
+### Nouvelles routes
 
+#### Configuration
 ```javascript
-// Capture d'image
+// Récupérer les paramètres actuels
+GET /api/settings
+
+// Mettre à jour les paramètres
+POST /api/settings
+Content-Type: application/x-www-form-urlencoded
+{
+    scan_mode: "datamatrix|lot",
+    detection_mode: "automatique|manuel", 
+    lighting_mode: "blanc|uv",
+    manual_of: "string"
+}
+
+// Test d'éclairage
+POST /api/test-lighting
+Content-Type: application/json
+{
+    "lighting_type": "blanc|uv"
+}
+```
+
+#### WebSocket étendu
+```javascript
+// Contrôle d'éclairage spécifique
+ws.send(JSON.stringify({
+    "lighting": "blanc"  // ou "uv"
+}));
+
+// Zoom sur un point (inchangé)
+ws.send(JSON.stringify({
+    "zoomTo": [0.5, 0.3]
+}));
+
+// Capture (comportement adapté selon les paramètres)
 ws.send("capture");
 
-// Autofocus
+// Autofocus (inchangé)
 ws.send("focus");
-
-// Zoom sur un point (coordonnées relatives 0-1)
-ws.send(JSON.stringify({
-    "zoomTo": [0.5, 0.3]  // x=50%, y=30%
-}));
-
-// Reset du zoom
-ws.send(JSON.stringify({
-    "resetZoom": true
-}));
-
-// Signal série
-ws.send(JSON.stringify({
-    "serial": true
-}));
 ```
 
-### Réponses WebSocket
-
+#### Réponses adaptées
 ```javascript
-// Statut
-{
-    "type": "status",
-    "message": "Capture en cours..."
-}
-
-// Résultat de capture
+// Résultat de capture avec contexte
 {
     "type": "capture_result",
-    "photo_path": "/images/20250704_143022.jpg",
-    "datamatrix": "ABC123XYZ",
+    "photo_path": "/images/20250710_143022_AE-F22050360-00B.jpg",
+    "datamatrix": "AE-F22050360-00B",  // ou manuel ou null
     "latest_images": [...],
-    "timestamp": "2025-07-04T14:30:22"
-}
-
-// Erreur
-{
-    "type": "error",
-    "message": "Erreur de capture"
+    "timestamp": "2025-07-10T14:30:22",
+    "scan_mode": "datamatrix",
+    "detection_mode": "automatique"
 }
 ```
 
-## 🐛 Dépannage
+## 🔌 Intégration Arduino
+
+### Code Arduino pour contrôle d'éclairage
+```cpp
+// Code suggéré pour Arduino Nano
+void setup() {
+    Serial.begin(9600);
+    pinMode(LED_BLANC_PIN, OUTPUT);
+    pinMode(LED_UV_PIN, OUTPUT);
+}
+
+void loop() {
+    if (Serial.available()) {
+        byte signal = Serial.read();
+        
+        switch(signal) {
+            case 0x01:  // LEDs blanches
+                digitalWrite(LED_BLANC_PIN, HIGH);
+                digitalWrite(LED_UV_PIN, LOW);
+                break;
+                
+            case 0x02:  // Lampe UV
+                digitalWrite(LED_BLANC_PIN, LOW);
+                digitalWrite(LED_UV_PIN, HIGH);
+                break;
+                
+            default:
+                // Signal inconnu
+                break;
+        }
+    }
+}
+```
+
+## 🐛 Dépannage v2.0
+
+### Commandes Makefile utiles
+
+```bash
+# Diagnostic complet
+make check
+
+# Vérification de la caméra
+make fix-camera
+
+# Réparation des permissions
+make fix-permissions
+
+# Recréation de l'environnement
+make recreate-venv
+
+# Logs en temps réel
+make logs
+
+# Sauvegarde complète
+make backup
+
+# Restauration
+make restore
+```
 
 ### Problèmes courants
 
-**1. Caméra non détectée**
+**1. Page de paramètres inaccessible**
 ```bash
-# Vérifier l'activation
-sudo raspi-config nonint do_camera 0
+# Vérifier que settings.html existe
+ls -la settings.html
 
-# Vérifier la détection
-libcamera-hello --list-cameras
-
-# Redémarrer si nécessaire
-sudo reboot
+# Vérifier les routes
+curl http://localhost:8000/
+curl http://localhost:8000/app
 ```
 
-**2. Permissions insuffisantes**
+**2. Signaux série non envoyés**
 ```bash
-# Ajouter aux groupes nécessaires
-sudo usermod -a -G video,dialout $USER
+# Vérifier la connexion série
+ls -la /dev/ttyUSB* /dev/ttyACM*
 
-# Se reconnecter ou redémarrer
-sudo reboot
+# Tester manuellement
+echo -e '\x01' > /dev/ttyUSB0  # LEDs blanches
+echo -e '\x02' > /dev/ttyUSB0  # Lampe UV
 ```
 
-**3. Dépendances manquantes**
+**3. Paramètres non sauvegardés**
 ```bash
-# Réinstaller les dépendances
-pip install -r requirements.txt --force-reinstall
+# Vérifier les logs API
+tail -f logs/datamatrix_scanner.log | grep settings
 
-# Vérifier les paquets système
-sudo apt install --reinstall python3-opencv libdmtx-dev
+# Test API direct
+curl -X POST http://localhost:8000/api/settings \
+  -d "scan_mode=datamatrix&detection_mode=automatique&lighting_mode=blanc"
 ```
 
-**4. Erreurs de décodage DataMatrix**
-- Vérifiez l'éclairage (lumière uniforme)
-- Assurez-vous que le code est net et lisible
-- Testez avec différents angles de capture
-- Vérifiez les fichiers debug générés (`*_debug.jpg`)
+**4. Navigation entre pages**
+- `/` → Page de paramétrage (nouvelle page d'accueil)
+- `/app` → Application principale de scan
+- Bouton "Paramètres" dans `/app` → retour vers `/`
+- Bouton "Valider" dans `/` → redirection vers `/app`
 
 ### Logs et diagnostics
 
 ```bash
-# Affichage des logs en temps réel
-tail -f logs/datamatrix_scanner.log
-
-# Tests système complets
-python run.py test
-
-# Statut détaillé
-python run.py status
+# Makefile - logs en temps réel
+make logs
 
 # Logs du service systemd
 sudo journalctl -u datamatrix-scanner -f
+
+# Tests système complets
+make test
+python run.py test
+
+# Statut détaillé avec Makefile
+make status
+make ping
+make config
 ```
 
-### Performance
+## 🔒 Service système v2.0
 
-**Optimisations recommandées :**
-
-1. **GPU** : Activez l'accélération GPU si disponible
+### Installation et gestion
 ```bash
-sudo raspi-config nonint do_memory_split 128
-```
+# Installation du service (via Makefile)
+make install-service
 
-2. **Swap** : Augmentez le swap pour les gros traitements
-```bash
-sudo dphys-swapfile swapoff
-sudo sed -i 's/CONF_SWAPSIZE=100/CONF_SWAPSIZE=512/' /etc/dphys-swapfile
-sudo dphys-swapfile setup
-sudo dphys-swapfile swapon
-```
-
-3. **Réseau** : Utilisez une connexion Ethernet pour de meilleures performances
-
-## 🔒 Service système
-
-### Installation du service
-
-Le script d'installation crée automatiquement un service systemd :
-
-```bash
-# Démarrage automatique
-sudo systemctl enable datamatrix-scanner
-
-# Contrôle du service
+# Contrôle manuel
 sudo systemctl start datamatrix-scanner
 sudo systemctl stop datamatrix-scanner
 sudo systemctl restart datamatrix-scanner
-
-# Statut
 sudo systemctl status datamatrix-scanner
+
+# Démarrage automatique
+sudo systemctl enable datamatrix-scanner
 ```
 
 ### Configuration du service
-
-Fichier : `/etc/systemd/system/datamatrix-scanner.service`
-
 ```ini
 [Unit]
-Description=DataMatrix Scanner Service
+Description=DataMatrix Scanner v2.0 Service
 After=network.target
 
 [Service]
@@ -374,56 +430,71 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-## 📊 Monitoring
+## 📊 Monitoring et Performance
 
-### Métriques système
-
-L'application expose des informations de monitoring :
-
-- **Santé** : Statut de la caméra et des services
-- **Performance** : FPS du flux vidéo, temps de traitement
-- **Stockage** : Espace disque, nombre d'images
-- **Réseau** : Connexions WebSocket actives
+### Métriques système v2.0
+- **Performance caméra** : FPS optimisé avec thread en arrière-plan
+- **Mémoire** : Buffer intelligent de frames
+- **Configuration** : Sauvegarde persistante des paramètres
+- **Éclairage** : Contrôle Arduino via signaux série
 
 ### Surveillance recommandée
-
-1. **Température CPU** : Évitez la surchauffe
 ```bash
+# Makefile - statut global
+make status
+
+# Température et performance
 vcgencmd measure_temp
-```
-
-2. **Mémoire** : Surveillez l'utilisation RAM
-```bash
 free -h
-```
-
-3. **Espace disque** : Nettoyage automatique configuré
-```bash
 df -h
+
+# Activité réseau
+netstat -tlnp | grep :8000
 ```
 
-## 🤝 Contribution
+## 🆕 Nouveautés v2.0
 
-### Structure de développement
+### Architecture
+- ✅ **Séparation claire** : Configuration (`/`) et Application (`/app`)
+- ✅ **API REST complète** : Gestion des paramètres via `/api/settings`
+- ✅ **Persistence** : Sauvegarde automatique de la configuration
+- ✅ **Navigation fluide** : Boutons de navigation entre les pages
 
+### Interface utilisateur
+- ✅ **Design moderne** : Gradients, animations, effets visuels
+- ✅ **Configuration intuitive** : Boutons interactifs pour tous les paramètres
+- ✅ **Feedback visuel** : Indicateurs de statut et messages contextuels
+- ✅ **Responsive design** : Adaptation mobile et desktop
+
+### Fonctionnalités
+- ✅ **Modes flexibles** : DataMatrix/Lot et Automatique/Manuel
+- ✅ **Éclairage intelligent** : Contrôle LEDs blanches et UV
+- ✅ **Nommage automatique** : Fichiers avec OF si mode manuel
+- ✅ **Test d'éclairage** : Validation du matériel directement depuis l'interface
+
+## 🤝 Migration depuis v1.0
+
+### Changements importants
+1. **URL principale** : `/` → Page de paramétrage (nouveau)
+2. **URL application** : `/app` → Interface de scan (ancien `/`)
+3. **Nouveaux fichiers** : `settings.html`, `app.html` (remplace `index.html`)
+4. **API étendue** : Nouvelles routes `/api/settings` et `/api/test-lighting`
+5. **Signaux série** : Support 0x01 (blanc) et 0x02 (UV)
+
+### Migration automatique
 ```bash
-# Mode développement
-python run.py dev
+# Sauvegarde de v1.0
+make backup
 
-# Tests
-python run.py test
+# Mise à jour vers v2.0
+git pull origin main
 
-# Lint (si installé)
-flake8 *.py
-black *.py
+# Installation des nouvelles dépendances
+make setup
+
+# Test de la nouvelle version
+make test
 ```
-
-### Ajout de fonctionnalités
-
-1. Fork du projet
-2. Création d'une branche feature
-3. Développement avec tests
-4. Pull request avec description détaillée
 
 ## 📄 Licence
 
@@ -431,4 +502,4 @@ Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
 
 ---
 
-**Note** : Ce projet est optimisé pour Raspberry Pi 5 avec caméra OV64A40. D'autres configurations peuvent nécessiter des ajustements dans `config.py`.
+**DataMatrix Scanner v2.0** - Système complet de capture et analyse avec interface de paramétrage avancée, optimisé pour Raspberry Pi 5 avec caméra OV64A40 et contrôle d'éclairage Arduino.
