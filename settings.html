@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataMatrix Scanner - Paramètres</title>
+    <title>DataMatrix Scanner v2.1 - Paramètres optimisés</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -14,7 +14,7 @@
         }
         
         .settings-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             min-height: 100vh;
@@ -38,6 +38,16 @@
             font-weight: 700;
             margin-bottom: 40px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .version-badge {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            vertical-align: middle;
         }
         
         .section-title {
@@ -73,7 +83,7 @@
             transition: all 0.3s ease;
             text-align: center;
             position: relative;
-            min-height: 100px;
+            min-height: 120px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -122,6 +132,29 @@
         
         .option-btn.active .description {
             color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .quality-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .quality-indicator.standard {
+            background: rgba(52, 152, 219, 0.2);
+        }
+        
+        .quality-indicator.haute {
+            background: rgba(231, 76, 60, 0.2);
+        }
+        
+        .quality-indicator.expert {
+            background: rgba(241, 196, 15, 0.2);
         }
         
         .manual-input {
@@ -272,6 +305,29 @@
             border: 1px solid #fc8181;
         }
         
+        .features-info {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border: 1px solid #2196f3;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .features-info h5 {
+            color: #0d47a1;
+            margin-bottom: 15px;
+        }
+        
+        .features-info ul {
+            color: #1565c0;
+            padding-left: 20px;
+        }
+        
+        .features-info li {
+            margin-bottom: 5px;
+        }
+        
         @media (max-width: 768px) {
             .button-group {
                 flex-direction: column;
@@ -285,6 +341,10 @@
             .title {
                 font-size: 2rem;
             }
+            
+            .option-btn {
+                min-height: 100px;
+            }
         }
     </style>
 </head>
@@ -294,6 +354,7 @@
             <h1 class="title">
                 <i class="fas fa-cogs"></i>
                 Configuration Scanner
+                <span class="version-badge">v2.1</span>
             </h1>
             
             <form id="settingsForm">
@@ -307,7 +368,7 @@
                         <div class="option-btn active" data-name="scan_mode" data-value="datamatrix">
                             <i class="fas fa-qrcode"></i>
                             <div class="title">DataMatrix</div>
-                            <div class="description">Scan d'une seule carte avec décodage</div>
+                            <div class="description">Scan d'une seule carte avec décodage amélioré</div>
                         </div>
                         <div class="option-btn" data-name="scan_mode" data-value="lot">
                             <i class="fas fa-layer-group"></i>
@@ -327,7 +388,7 @@
                         <div class="option-btn active" data-name="detection_mode" data-value="automatique">
                             <i class="fas fa-magic"></i>
                             <div class="title">Automatique</div>
-                            <div class="description">Détection automatique du DataMatrix</div>
+                            <div class="description">Détection automatique optimisée</div>
                         </div>
                         <div class="option-btn" data-name="detection_mode" data-value="manuel">
                             <i class="fas fa-hand-pointer"></i>
@@ -346,6 +407,34 @@
                     </div>
                 </div>
                 
+                <!-- NOUVEAU: Mode qualité -->
+                <div class="section">
+                    <h2 class="section-title">
+                        <i class="fas fa-camera"></i>
+                        Qualité de capture
+                    </h2>
+                    <div class="button-group">
+                        <div class="option-btn active" data-name="quality_mode" data-value="standard">
+                            <i class="fas fa-camera"></i>
+                            <div class="title">Standard</div>
+                            <div class="description">Capture rapide, qualité normale</div>
+                            <div class="quality-indicator standard">⚡ Rapide</div>
+                        </div>
+                        <div class="option-btn" data-name="quality_mode" data-value="haute">
+                            <i class="fas fa-camera-retro"></i>
+                            <div class="title">Haute qualité</div>
+                            <div class="description">Post-traitement, débruitage, 3 prises</div>
+                            <div class="quality-indicator haute">🔥 Optimisé</div>
+                        </div>
+                        <div class="option-btn" data-name="quality_mode" data-value="expert">
+                            <i class="fas fa-magic"></i>
+                            <div class="title">Expert</div>
+                            <div class="description">Multi-exposition, qualité maximale</div>
+                            <div class="quality-indicator expert">⭐ Premium</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Mode d'éclairage -->
                 <div class="section">
                     <h2 class="section-title">
@@ -356,12 +445,12 @@
                         <div class="option-btn active" data-name="lighting_mode" data-value="blanc">
                             <i class="fas fa-sun"></i>
                             <div class="title">Blanc</div>
-                            <div class="description">LEDs blanches standard</div>
+                            <div class="description">LEDs blanches avec mode photo optimisé</div>
                         </div>
                         <div class="option-btn" data-name="lighting_mode" data-value="uv">
                             <i class="fas fa-radiation"></i>
                             <div class="title">UV</div>
-                            <div class="description">Lampe UV pour marquages spéciaux</div>
+                            <div class="description">Lampe UV douce pour marquages spéciaux</div>
                         </div>
                     </div>
                 </div>
@@ -384,10 +473,22 @@
                     </div>
                 </div>
                 
+                <!-- Informations sur les améliorations -->
+                <div class="features-info">
+                    <h5><i class="fas fa-rocket"></i> Nouvelles optimisations v2.1</h5>
+                    <ul>
+                        <li><strong>Performance :</strong> Thread de capture optimisé, flux vidéo 30 FPS</li>
+                        <li><strong>Qualité photo :</strong> Post-traitement CLAHE, débruitage, netteté</li>
+                        <li><strong>Détection :</strong> Algorithme amélioré, multiples tentatives de décodage</li>
+                        <li><strong>Éclairage :</strong> Mode photo optimisé, signaux série étendus</li>
+                        <li><strong>Interface :</strong> Nouveau mode qualité, retour visuel amélioré</li>
+                    </ul>
+                </div>
+                
                 <!-- Bouton de validation -->
                 <button type="submit" class="validate-btn">
                     <i class="fas fa-check-circle"></i>
-                    Valider et démarrer l'application
+                    Valider et démarrer l'application optimisée
                 </button>
                 
                 <div class="status-message" id="statusMessage"></div>
@@ -397,12 +498,13 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        class SettingsManager {
+        class EnhancedSettingsManager {
             constructor() {
                 this.settings = {
                     scan_mode: 'datamatrix',
                     detection_mode: 'automatique',
                     lighting_mode: 'blanc',
+                    quality_mode: 'standard',
                     manual_of: ''
                 };
                 
@@ -435,6 +537,31 @@
                 document.getElementById('manualOf').addEventListener('input', (e) => {
                     this.settings.manual_of = e.target.value;
                 });
+                
+                // Gestion des tooltips pour les modes qualité
+                this.addQualityTooltips();
+            }
+            
+            addQualityTooltips() {
+                const qualityButtons = document.querySelectorAll('[data-name="quality_mode"]');
+                qualityButtons.forEach(btn => {
+                    const mode = btn.dataset.value;
+                    let tooltip = '';
+                    
+                    switch(mode) {
+                        case 'standard':
+                            tooltip = 'Capture rapide (1 photo, 85% qualité JPEG)';
+                            break;
+                        case 'haute':
+                            tooltip = 'Post-traitement activé (3 photos, meilleure sélectionnée, 95% qualité)';
+                            break;
+                        case 'expert':
+                            tooltip = 'Bracketing exposition (5 photos, contrôle manuel, 98% qualité)';
+                            break;
+                    }
+                    
+                    btn.setAttribute('title', tooltip);
+                });
             }
             
             handleOptionClick(clickedBtn) {
@@ -465,7 +592,36 @@
                     }
                 }
                 
+                // Affichage des informations sur le mode qualité
+                if (name === 'quality_mode') {
+                    this.showQualityInfo(value);
+                }
+                
                 console.log('Paramètres mis à jour:', this.settings);
+            }
+            
+            showQualityInfo(mode) {
+                const infos = {
+                    standard: {
+                        time: '~1 seconde',
+                        features: 'Capture directe, qualité normale'
+                    },
+                    haute: {
+                        time: '~3 secondes',
+                        features: 'Post-traitement, débruitage, 3 prises'
+                    },
+                    expert: {
+                        time: '~8 secondes',
+                        features: 'Bracketing exposition, qualité maximale'
+                    }
+                };
+                
+                const info = infos[mode];
+                if (info) {
+                    this.showStatus('info', 
+                        `Mode ${mode} : ${info.time} - ${info.features}`
+                    );
+                }
             }
             
             async loadCurrentSettings() {
@@ -524,12 +680,13 @@
             
             async saveSettings() {
                 try {
-                    this.showStatus('info', 'Sauvegarde en cours...');
+                    this.showStatus('info', 'Sauvegarde des paramètres optimisés...');
                     
                     const formData = new FormData();
                     formData.append('scan_mode', this.settings.scan_mode);
                     formData.append('detection_mode', this.settings.detection_mode);
                     formData.append('lighting_mode', this.settings.lighting_mode);
+                    formData.append('quality_mode', this.settings.quality_mode);
                     formData.append('manual_of', this.settings.manual_of);
                     
                     const response = await fetch('/api/settings', {
@@ -539,12 +696,17 @@
                     
                     if (response.ok) {
                         const result = await response.json();
-                        this.showStatus('success', 'Configuration sauvegardée avec succès!');
+                        this.showStatus('success', 'Configuration optimisée sauvegardée!');
                         
-                        // Redirection vers l'application après 1.5 secondes
+                        // Affichage des optimisations activées
+                        setTimeout(() => {
+                            this.showOptimizationsSummary();
+                        }, 1000);
+                        
+                        // Redirection vers l'application après 3 secondes
                         setTimeout(() => {
                             window.location.href = '/app';
-                        }, 1500);
+                        }, 3000);
                     } else {
                         throw new Error('Erreur serveur');
                     }
@@ -553,16 +715,38 @@
                 }
             }
             
+            showOptimizationsSummary() {
+                const optimizations = [];
+                
+                if (this.settings.quality_mode === 'expert') {
+                    optimizations.push('Bracketing exposition activé');
+                } else if (this.settings.quality_mode === 'haute') {
+                    optimizations.push('Post-traitement activé');
+                }
+                
+                if (this.settings.scan_mode === 'datamatrix') {
+                    optimizations.push('Décodage amélioré');
+                }
+                
+                optimizations.push('Thread capture optimisé');
+                optimizations.push('Flux vidéo 30 FPS');
+                
+                this.showStatus('success', 
+                    `Optimisations: ${optimizations.join(', ')}`
+                );
+            }
+            
             showStatus(type, message) {
                 const statusElement = document.getElementById('statusMessage');
                 statusElement.className = `status-message ${type}`;
                 statusElement.innerHTML = `
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                      type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
                     ${message}
                 `;
                 statusElement.style.display = 'block';
                 
-                if (type === 'success') {
+                if (type === 'info') {
                     setTimeout(() => {
                         statusElement.style.display = 'none';
                     }, 3000);
@@ -572,7 +756,7 @@
         
         // Initialisation
         document.addEventListener('DOMContentLoaded', () => {
-            new SettingsManager();
+            new EnhancedSettingsManager();
         });
     </script>
 </body>
