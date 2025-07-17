@@ -51,9 +51,6 @@ help:
 	@echo "💾 SAUVEGARDE:"
 	@echo "  make backup          - Sauvegarde complète"
 	@echo "  make restore         - Restauration depuis sauvegarde"
-
-	@echo "  make backup          - Sauvegarde complète"
-	@echo "  make restore         - Restauration depuis sauvegarde"
 	@echo "  make list-backups    - Liste des sauvegardes"
 	@echo "  make clean-backups   - Nettoie les anciennes sauvegardes"
 
