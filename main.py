@@ -22,12 +22,15 @@ import numpy as np
 import serial
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Form
-from fastapi.responses import HTMLResponse, StreamingResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from picamera2 import Picamera2
 from picamera2.encoders import MJPEGEncoder
 from picamera2.outputs import FileOutput
 from pylibdmtx import pylibdmtx
+
+# Import du gestionnaire de stockage
+from storage_manager import get_storage_manager
 
 # Configuration logging
 logging.basicConfig(
@@ -36,7 +39,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuration globale
+# Initialisation du gestionnaire de stockage
+storage_manager = get_storage_manager()
+
+# Configuration globale - IMAGES_DIR est maintenant géré dynamiquement par storage_manager
+# Conservé pour compatibilité avec le montage des fichiers statiques
 IMAGES_DIR = Path("images")
 IMAGES_DIR.mkdir(exist_ok=True)
 
@@ -55,6 +62,8 @@ app_settings = {
 }
 
 # Montage des fichiers statiques
+# Note: Ce montage est conservé pour compatibilité, mais les images peuvent aussi
+# être servies depuis le réseau via la route /api/image/{filename}
 app.mount("/images", StaticFiles(directory="images"), name="images")
 
 
@@ -301,17 +310,19 @@ class OptimizedCameraManager:
         return zoomed
     
     async def capture_photo(self, manual_of: str = None) -> str:
-        """Capture photo OPTIMISÉE - Moins d'interruptions du flux"""
+        """Capture photo OPTIMISÉE avec stockage réseau et fallback - Moins d'interruptions du flux"""
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            
+
             # Nom de fichier avec OF si manuel
             if manual_of:
                 filename = f"{timestamp}_{manual_of}.jpg"
             else:
                 filename = f"{timestamp}.jpg"
-                
-            filepath = IMAGES_DIR / filename
+
+            # Le filepath sera déterminé par le storage_manager
+            # Conservé pour compatibilité temporaire
+            filepath = None
             
             # OPTIMISATION: Pause plus courte du streaming
             self.is_streaming = False
@@ -334,13 +345,17 @@ class OptimizedCameraManager:
                 # Capture
                 array = self.picam2.capture_array()
                 frame = cv2.cvtColor(array, cv2.COLOR_RGB2BGR)
-                
-                # Sauvegarde asynchrone
-                await asyncio.get_event_loop().run_in_executor(
-                    self._executor, cv2.imwrite, str(filepath), frame
+
+                # Sauvegarde avec storage_manager (supporte réseau + fallback)
+                saved_path, success = await asyncio.get_event_loop().run_in_executor(
+                    self._executor, storage_manager.save_file, filename, cv2.imwrite, frame
                 )
-                
-                logger.info(f"Photo capturée: {filename} - {frame.shape}")
+
+                if not success or not saved_path:
+                    raise Exception(f"Échec de la sauvegarde de {filename}")
+
+                filepath = saved_path
+                logger.info(f"Photo capturée: {filename} - {frame.shape} - Sauvegardé: {filepath}")
                 
                 # Rétablissement RAPIDE
                 self.picam2.stop()
@@ -460,8 +475,18 @@ class OptimizedCameraManager:
 
 
 def decode_datamatrix(image_path: str) -> Optional[str]:
-    """Décode un code DataMatrix à partir d'une image"""
+    """Décode un code DataMatrix à partir d'une image - supporte réseau et local"""
     try:
+        # Si image_path est juste un nom de fichier, le chercher avec storage_manager
+        if not os.path.isabs(image_path) and not os.path.exists(image_path):
+            filename = Path(image_path).name
+            found_path = storage_manager.get_file_path(filename)
+            if found_path:
+                image_path = str(found_path)
+            else:
+                logger.error(f"Fichier introuvable: {image_path}")
+                return None
+
         image = cv2.imread(image_path)
         if image is None:
             logger.error(f"Impossible de charger l'image: {image_path}")
@@ -581,12 +606,19 @@ def rotate_image(image, angle):
 
 
 def get_latest_images(count: int = 3) -> list:
-    """Dernières images"""
+    """Dernières images - utilise le storage_manager pour lister depuis réseau et local"""
     try:
-        image_files = list(IMAGES_DIR.glob("*.jpg"))
-        image_files = [f for f in image_files if "_debug" not in f.name]
-        image_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-        return [f"/images/{f.name}" for f in image_files[:count]]
+        # Utiliser le storage_manager pour lister les images (réseau + local)
+        image_files = storage_manager.list_files(pattern="*.jpg", limit=None)
+
+        # Filtrer les fichiers de debug
+        image_files = [f for f in image_files if "_debug" not in f.name and "_label_debug" not in f.name]
+
+        # Limiter au nombre demandé
+        image_files = image_files[:count]
+
+        # Retourner les chemins relatifs pour l'API
+        return [f"/images/{f.name}" for f in image_files]
     except Exception as e:
         logger.error(f"Erreur récupération images: {e}")
         return []
@@ -694,6 +726,68 @@ async def update_settings(
 async def get_settings():
     """Récupère les paramètres actuels"""
     return app_settings
+
+
+@app.get("/api/storage/status")
+async def get_storage_status():
+    """Récupère l'état du système de stockage"""
+    try:
+        status = storage_manager.get_storage_status()
+        return JSONResponse(content=status)
+    except Exception as e:
+        logger.error(f"Erreur récupération statut stockage: {e}")
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=500
+        )
+
+
+@app.post("/api/storage/reset")
+async def reset_storage_failures():
+    """Réinitialise le compteur d'échecs réseau pour forcer une nouvelle tentative"""
+    try:
+        storage_manager.reset_failure_counter()
+        return JSONResponse(content={
+            "status": "success",
+            "message": "Compteur d'échecs réinitialisé"
+        })
+    except Exception as e:
+        logger.error(f"Erreur réinitialisation compteur: {e}")
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=500
+        )
+
+
+@app.get("/api/image/{filename}")
+async def get_image(filename: str):
+    """
+    Sert une image depuis n'importe quel emplacement de stockage (réseau ou local)
+    Cette route permet d'accéder aux images même si elles sont sur le partage réseau
+    """
+    try:
+        # Chercher le fichier avec storage_manager
+        file_path = storage_manager.get_file_path(filename)
+
+        if file_path is None or not file_path.exists():
+            return JSONResponse(
+                content={"error": f"Image non trouvée: {filename}"},
+                status_code=404
+            )
+
+        # Lire et retourner l'image
+        with open(file_path, 'rb') as f:
+            image_data = f.read()
+
+        from fastapi.responses import Response
+        return Response(content=image_data, media_type="image/jpeg")
+
+    except Exception as e:
+        logger.error(f"Erreur récupération image {filename}: {e}")
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=500
+        )
 
 
 @app.get("/video_feed")
